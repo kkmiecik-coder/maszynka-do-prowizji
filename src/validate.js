@@ -5,11 +5,19 @@ function norm(s) {
   return String(s ?? '').trim().toLowerCase();
 }
 
-// Arkusz szczegółów Play_dealer: kolumny „SID POS", „SID Sprzed.", „Nazwa Firmy".
+// Arkusz Play_dealer akceptowany na dwa sposoby:
+//  • gotowa zakładka „dane do plików" — nagłówki w wierszu 1: „SID POS", „SID Sprzed.", „Nazwa Firmy";
+//  • surowa zakładka „dane" — nagłówki w WIERSZU 3 (`headersRow3`): zawiera markery
+//    „SID POS", „SID Sprzed." i „% Circus" (z niej program zbuduje „dane do plików").
 export function looksLikePlay(sheets) {
   return (sheets || []).some((s) => {
-    const h = (s.headers || []).map(norm);
-    return h[0] === 'sid pos' && h[1] === 'sid sprzed.' && h[2] === 'nazwa firmy';
+    const h1 = (s.headers || []).map(norm);
+    if (h1[0] === 'sid pos' && h1[1] === 'sid sprzed.' && h1[2] === 'nazwa firmy') return true;
+    // surowa "dane": markery w dowolnym z odczytanych wierszy nagłówkowych
+    const h3 = (s.headersRow3 || []).map(norm);
+    const hasMarkers = (arr) =>
+      arr.includes('sid pos') && arr.includes('sid sprzed.') && arr.includes('% circus');
+    return hasMarkers(h3) || hasMarkers(h1);
   });
 }
 

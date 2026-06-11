@@ -17,14 +17,18 @@ export async function findSheetByPrefix(path, prefix) {
   return ws ? ws.name : null;
 }
 
-// Nagłówki (wiersz 1) każdego arkusza — do walidacji struktury pliku.
+// Nagłówki każdego arkusza — do walidacji struktury pliku.
+// Czytamy wiersz 1 (typowe nagłówki) ORAZ wiersz 3 (surowa zakładka "dane"
+// Play_dealer trzyma tam nagłówki — wiersze 1-2 są puste).
 export async function readAllHeaders(path) {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.readFile(path);
   return wb.worksheets.map((ws) => {
     const headers = [];
     ws.getRow(1).eachCell({ includeEmpty: true }, (cell, col) => { headers[col - 1] = cellValue(cell.value); });
-    return { name: ws.name, headers };
+    const headersRow3 = [];
+    ws.getRow(3).eachCell({ includeEmpty: true }, (cell, col) => { headersRow3[col - 1] = cellValue(cell.value); });
+    return { name: ws.name, headers, headersRow3 };
   });
 }
 

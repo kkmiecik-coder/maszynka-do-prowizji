@@ -1,6 +1,6 @@
 {
   "name": "circus",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Narzędzie do obliczania prowizji",
   "main": "electron/main.js",
   "scripts": {

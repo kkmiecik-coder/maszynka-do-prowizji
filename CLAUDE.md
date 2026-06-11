@@ -38,7 +38,7 @@ Two-process Electron split with a hard boundary: **`src/` is pure, testable busi
 ### Data flow (the `generate` handler in `electron/ipc.js`)
 
 1. `reader.js` reads the two source workbooks into plain arrays of arrays.
-2. `validate.js` checks files by **column-header structure**, not sheet name or filename.
+2. `validate.js` checks files by **column-header structure**, not sheet name or filename. A Play_dealer file is accepted either via the ready `dane do plików` sheet (headers in row 1) **or** the raw `dane` sheet (headers in **row 3** — `readAllHeaders` returns both `headers` and `headersRow3`; raw markers: `SID POS`+`SID Sprzed.`+`% Circus`).
 3. `period.js` detects the billing period from the `Okres Rozl.` column (most frequent `YYYYMM`). **That column is located by name, hybrid-mapped** (see below) — its position drifts between months.
 4. `engine.js` (`buildFiles`) groups summary rows by `Organizacja` and joins detail rows by an exact key match.
 5. `generator.js` clones the matching template workbook and injects rows, preserving styling. The detail block's columns are mapped **dynamically** (see below).
