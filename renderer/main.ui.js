@@ -566,15 +566,13 @@ window.api.onConfigUpdated(async () => {
   });
 })();
 
-// Pokaż wersję w stopce (jeśli dostępna).
+// Pokaż numer wersji w nagłówku (dyskretnie obok nazwy) i w tytule okna.
 (async function showVersion() {
   try {
     const v = window.api.getVersion ? await window.api.getVersion() : null;
     if (!v) return;
-    const info = document.getElementById('footerInfo');
-    if (info && !info.dataset.versionShown) {
-      info.dataset.versionShown = '1';
-    }
+    const badge = document.getElementById('appVersion');
+    if (badge) badge.textContent = `v${v}`;
     document.title = `Maszynka do prowizji ${v}`;
   } catch { /* ignoruj */ }
 })();
