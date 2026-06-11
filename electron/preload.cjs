@@ -22,4 +22,6 @@ contextBridge.exposeInMainWorld('api', {
   onSendProgress: (cb) => ipcRenderer.on('send-progress', (_e, p) => cb(p)),
   getVersion: () => ipcRenderer.invoke('app:version'),
   onUpdateStatus: (cb) => ipcRenderer.on('update-status', (_e, p) => cb(p)),
+  startUpdate: () => ipcRenderer.invoke('update:start'),
+  cancelUpdate: () => ipcRenderer.invoke('update:cancel'),
 });

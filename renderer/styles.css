@@ -550,23 +550,76 @@ body {
 }
 .muted { color: #9a91a8; font-style: italic; }
 
-/* Dyskretny komunikat o aktualizacji w prawym dolnym rogu */
-.update-toast {
+/* Blokujący modal aktualizacji (overlay na całym oknie) */
+.update-overlay {
   position: fixed;
-  right: 16px;
-  bottom: 16px;
-  max-width: 360px;
-  padding: 10px 14px;
-  background: var(--ink);
-  color: #fff;
-  font-size: 13px;
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-  z-index: 1000;
-  opacity: .95;
+  inset: 0;
+  background: rgba(31, 20, 48, .55);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
 }
-.update-toast.ready { background: var(--ok); }
-.update-toast[hidden] { display: none; }
+.update-overlay[hidden] { display: none; }
+.update-modal {
+  background: var(--card);
+  border-radius: 14px;
+  box-shadow: 0 12px 48px rgba(31, 20, 48, .35);
+  padding: 28px 32px 24px;
+  width: 420px;
+  max-width: calc(100vw - 48px);
+  text-align: center;
+}
+.update-icon {
+  width: 52px; height: 52px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: var(--play-green);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  font-weight: 700;
+}
+.update-title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.update-text {
+  margin: 0 0 20px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.update-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.update-actions[hidden] { display: none; }
+.update-actions .btn { min-width: 120px; }
+.update-progress[hidden] { display: none; }
+.update-bar-track {
+  height: 10px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.update-bar-fill {
+  height: 100%;
+  width: 0;
+  background: var(--play-green);
+  border-radius: 999px;
+  transition: width .2s ease;
+}
+.update-bar-label {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
 
 /* Status text */
 .status-ok { color: var(--ok); font-weight: 600; }

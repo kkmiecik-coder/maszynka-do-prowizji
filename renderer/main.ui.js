@@ -543,26 +543,70 @@ window.api.onConfigUpdated(async () => {
   render();
 });
 
-// ===== Auto-aktualizacja: dyskretny komunikat =====
-// Pokazujemy tylko gdy aktualizacja jest pobrana (gotowa) lub w trakcie pobierania.
-// Stany „checking"/„current"/„error" są ciche — nie zawracamy głowy użytkownikowi.
-(function wireUpdateToast() {
-  const toast = document.getElementById('updateToast');
-  if (!toast || !window.api.onUpdateStatus) return;
+// ===== Auto-aktualizacja: blokujący modal (wymuszona aktualizacja) =====
+// Gdy wykryto nowszą wersję ('required') → pełnoekranowy modal blokuje UI.
+//   Anuluj   → zamyka aplikację.
+//   Aktualizuj → start pobierania; modal zmienia się w progressbar.
+// Po pobraniu apka sama się instaluje i uruchamia ponownie (główny proces).
+(function wireUpdateModal() {
+  const overlay = document.getElementById('updateOverlay');
+  if (!overlay || !window.api.onUpdateStatus) return;
+  const text = document.getElementById('updateText');
+  const actions = document.getElementById('updateActions');
+  const progress = document.getElementById('updateProgress');
+  const barFill = document.getElementById('updateBarFill');
+  const barLabel = document.getElementById('updateBarLabel');
+  const title = document.getElementById('updateTitle');
+  const startBtn = document.getElementById('updateStartBtn');
+  const cancelBtn = document.getElementById('updateCancelBtn');
+
+  function showProgress(pct) {
+    actions.hidden = true;
+    progress.hidden = false;
+    barFill.style.width = `${pct}%`;
+    barLabel.textContent = `Pobieram… ${pct}%`;
+  }
+
+  startBtn.addEventListener('click', () => {
+    showProgress(0);
+    window.api.startUpdate();
+  });
+  cancelBtn.addEventListener('click', () => {
+    // Zablokuj przyciski, by nie klikać dwa razy; główny proces zamknie apkę.
+    cancelBtn.disabled = true;
+    startBtn.disabled = true;
+    window.api.cancelUpdate();
+  });
+
   window.api.onUpdateStatus((p) => {
     if (!p) return;
-    if (p.state === 'downloading') {
-      toast.hidden = false;
-      toast.className = 'update-toast';
-      toast.textContent = `Pobieram aktualizację… ${p.percent ?? 0}%`;
-    } else if (p.state === 'downloaded') {
-      toast.hidden = false;
-      toast.className = 'update-toast ready';
-      toast.textContent = `✓ Aktualizacja ${p.version ? 'do ' + p.version + ' ' : ''}gotowa — zainstaluje się po zamknięciu programu.`;
-    } else {
-      // checking / current / available / error → nic nie pokazujemy
-      if (p.state !== 'downloading' && p.state !== 'downloaded') toast.hidden = true;
+    if (p.state === 'required') {
+      title.textContent = 'Wymagana aktualizacja';
+      text.textContent = p.version
+        ? `Dostępna jest nowa wersja ${p.version}. Aby kontynuować, zaktualizuj aplikację.`
+        : 'Dostępna jest nowa wersja. Aby kontynuować, zaktualizuj aplikację.';
+      actions.hidden = false;
+      progress.hidden = true;
+      overlay.hidden = false;
+    } else if (p.state === 'downloading') {
+      showProgress(p.percent ?? 0);
+    } else if (p.state === 'installing') {
+      progress.hidden = false;
+      actions.hidden = true;
+      barFill.style.width = '100%';
+      barLabel.textContent = 'Instaluję i uruchamiam ponownie…';
+    } else if (p.state === 'error') {
+      // Błąd pobierania — pokaż komunikat i pozwól spróbować ponownie lub anulować.
+      title.textContent = 'Błąd aktualizacji';
+      text.textContent = `Nie udało się pobrać aktualizacji: ${p.message || 'nieznany błąd'}. Spróbuj ponownie lub zamknij program.`;
+      progress.hidden = true;
+      actions.hidden = false;
+      startBtn.disabled = false;
+      cancelBtn.disabled = false;
+      startBtn.textContent = 'Spróbuj ponownie';
+      overlay.hidden = false;
     }
+    // 'current' → brak aktualizacji, nic nie pokazujemy (overlay zostaje ukryty).
   });
 })();
 

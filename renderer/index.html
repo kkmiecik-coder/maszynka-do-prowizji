@@ -42,8 +42,26 @@
     </footer>
   </div>
 
-  <!-- Dyskretny komunikat o aktualizacji (auto-update). Domyślnie ukryty. -->
-  <div class="update-toast" id="updateToast" hidden></div>
+  <!-- Blokujący modal aktualizacji (wymuszona). Domyślnie ukryty. -->
+  <div class="update-overlay" id="updateOverlay" hidden>
+    <div class="update-modal" role="dialog" aria-modal="true" aria-labelledby="updateTitle">
+      <div class="update-icon" id="updateIcon">⬆</div>
+      <h2 class="update-title" id="updateTitle">Wymagana aktualizacja</h2>
+      <p class="update-text" id="updateText"></p>
+
+      <!-- Widok pobierania (pokazywany po kliknięciu „Aktualizuj") -->
+      <div class="update-progress" id="updateProgress" hidden>
+        <div class="update-bar-track"><div class="update-bar-fill" id="updateBarFill"></div></div>
+        <div class="update-bar-label" id="updateBarLabel">Pobieram… 0%</div>
+      </div>
+
+      <!-- Przyciski (pokazywane na starcie) -->
+      <div class="update-actions" id="updateActions">
+        <button class="btn btn-secondary" id="updateCancelBtn" type="button">Anuluj</button>
+        <button class="btn btn-primary" id="updateStartBtn" type="button">Aktualizuj</button>
+      </div>
+    </div>
+  </div>
 
   <script src="main.ui.js"></script>
 </body>

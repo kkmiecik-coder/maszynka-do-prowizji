@@ -41,8 +41,10 @@ app.whenReady().then(() => {
   // Udostępnij rendererowi numer wersji (do stopki/„o programie").
   ipcMain.handle('app:version', () => app.getVersion());
   createWindow();
-  // Auto-aktualizacja: sprawdza GitHub Releases, pobiera w tle,
-  // instaluje przy zamknięciu apki. Pomijane w trybie dev.
-  initAutoUpdate(app, () => win);
+  // Auto-aktualizacja (wymuszona): wykrycie nowszej wersji → blokujący modal w UI.
+  // Pomijane w trybie dev. Zwraca uchwyty sterowane z renderera przez IPC.
+  const updater = initAutoUpdate(app, () => win);
+  ipcMain.handle('update:start', () => updater.startDownload());
+  ipcMain.handle('update:cancel', () => updater.cancelAndQuit());
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
