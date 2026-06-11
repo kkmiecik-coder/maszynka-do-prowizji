@@ -680,6 +680,8 @@ body {
 .ledger tbody tr:nth-child(even) { background: var(--play-purple-soft); }
 .ledger td.org { font-weight: 500; }
 .ledger td.sid { text-align: right; white-space: nowrap; }
+.ledger td.file-name { color: var(--ink-soft); font-size: 12.5px; }
+.ledger td.open-cell { white-space: nowrap; }
 
 /* Pills */
 .pill {

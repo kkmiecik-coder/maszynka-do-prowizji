@@ -1,4 +1,4 @@
-import { ipcMain, dialog, safeStorage, app } from 'electron';
+import { ipcMain, dialog, safeStorage, app, shell } from 'electron';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import nodemailer from 'nodemailer';
@@ -42,6 +42,13 @@ export function registerIpc() {
   ipcMain.handle('pick-folder', async () => {
     const r = await dialog.showOpenDialog({ properties: ['openDirectory'] });
     return r.canceled ? null : r.filePaths[0];
+  });
+  // Otwiera plik w domyślnym programie systemu (np. .xlsx w Excelu).
+  // shell.openPath zwraca pusty string przy sukcesie albo opis błędu.
+  ipcMain.handle('file:open', async (_e, path) => {
+    if (!path) return { ok: false, error: 'Brak ścieżki pliku.' };
+    const err = await shell.openPath(path);
+    return err ? { ok: false, error: err } : { ok: true };
   });
   // Walidacja pliku źródłowego: sprawdza STRUKTURĘ (nagłówki kolumn), nie nazwy zakładek.
   ipcMain.handle('validate-source', async (_e, { path, kind }) => {

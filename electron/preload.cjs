@@ -5,6 +5,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('api', {
   pickFile: () => ipcRenderer.invoke('pick-file'),
   pickFolder: () => ipcRenderer.invoke('pick-folder'),
+  openFile: (path) => ipcRenderer.invoke('file:open', path),
   validateSource: (args) => ipcRenderer.invoke('validate-source', args),
   resolveEmails: (files) => ipcRenderer.invoke('resolve-emails', files),
   openConfig: () => ipcRenderer.invoke('open-config'),

@@ -225,11 +225,9 @@ function channelPill(kanal) {
   return `<span class="pill pill-channel ${db ? 'db' : ''}">${esc(kanal)}</span>`;
 }
 
-function emailPill(f) {
-  if (f.email) {
-    return `<span class="pill pill-ok">✓ <span class="pill-email">${esc(f.email)}</span></span>`;
-  }
-  return `<span class="pill pill-err">✗ brak e-mail</span>`;
+// Nazwa pliku z pełnej ścieżki (obsługa \ i /).
+function baseName(p) {
+  return String(p || '').split(/[\\/]/).pop();
 }
 
 function renderStep2() {
@@ -238,24 +236,14 @@ function renderStep2() {
   const missing = r.files.filter((f) => !f.email).length;
 
   const rows = r.files.map((f, i) => {
-    const sending = state.rowSending[f.organizacja];
-    const s = state.sendResults[f.organizacja];
-    let status = '';
-    if (sending) status = `<span class="busy"><span class="spinner"></span>wysyłam…</span>`;
-    else if (s && s.ok) status = `<span class="row-status status-ok"><span class="icon">✓</span> wysłano</span>`;
-    else if (s && !s.ok) status = `<span class="row-status status-err"><span class="icon">✗</span> ${esc(s.error || 'błąd')}</span>`;
-    const label = (s && s.ok) ? 'Wyślij ponownie' : 'Wyślij';
-    const disabled = (!f.email || sending) ? 'disabled' : '';
-    const title = !f.email ? 'title="Brak adresu e-mail"' : '';
     return `
     <tr data-org="${esc(f.organizacja)}">
       <td class="org">${esc(f.organizacja)}</td>
       <td>${channelPill(f.kanal)}</td>
       <td class="sid mono">${esc(f.sidy.join(', '))}</td>
-      <td>${emailPill(f)}</td>
-      <td class="send-cell">
-        <span class="send-status">${status}</span>
-        <button class="btn btn-secondary btn-sm" type="button" data-send="${i}" ${disabled} ${title}>${label}</button>
+      <td class="mono file-name">${esc(baseName(f.path))}</td>
+      <td class="open-cell">
+        <button class="btn btn-secondary btn-sm" type="button" data-open="${i}">Otwórz</button>
       </td>
     </tr>`;
   }).join('');
@@ -271,18 +259,18 @@ function renderStep2() {
             <th>Organizacja</th>
             <th>Kanał</th>
             <th class="num">SID-y</th>
-            <th>E-mail</th>
-            <th>Wysyłka</th>
+            <th>Plik</th>
+            <th>Podgląd</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
-    ${missing > 0 ? `<p class="note-warn">${missing} ${plik(missing)} bez adresu e-mail — ${missing === 1 ? 'zostanie pominięty' : 'zostaną pominięte'} przy wysyłce. Możesz uzupełnić adresy w konfiguracji (⚙) lub wysłać resztę.</p>` : ''}
+    ${missing > 0 ? `<p class="note-warn">${missing} ${plik(missing)} bez adresu e-mail — ${missing === 1 ? 'zostanie pominięty' : 'zostaną pominięte'} przy wysyłce. Adresy uzupełnisz w konfiguracji (⚙).</p>` : ''}
   `;
 
-  panel.querySelectorAll('[data-send]').forEach((btn) => {
-    btn.addEventListener('click', () => onSendOne(Number(btn.dataset.send)));
+  panel.querySelectorAll('[data-open]').forEach((btn) => {
+    btn.addEventListener('click', () => onOpenFile(Number(btn.dataset.open)));
   });
 
   // Do wysyłki wystarczy choć jeden adres — brakujące zostaną pominięte (z potwierdzeniem).
@@ -296,24 +284,18 @@ function renderStep2() {
   $('#toSendBtn').addEventListener('click', () => goStep(3));
 }
 
-// Indywidualna wysyłka jednego pliku z kroku 2.
-async function onSendOne(i) {
+// Otwiera wygenerowany plik .xlsx w domyślnym programie (Excel) — podgląd w kroku 2.
+async function onOpenFile(i) {
   const f = state.result.files[i];
-  if (!f || !f.email || state.rowSending[f.organizacja]) return;
-  state.rowSending[f.organizacja] = true;
-  render();
-  let res;
+  if (!f || !f.path) return;
   try {
-    res = await window.api.sendOne({
-      file: { organizacja: f.organizacja, email: f.email, path: f.path },
-      period: state.result.period,
-    });
+    const res = await window.api.openFile(f.path);
+    if (res && !res.ok) {
+      alert(`Nie udało się otworzyć pliku:\n${res.error || 'nieznany błąd'}`);
+    }
   } catch (err) {
-    res = { ok: false, error: (err && err.message) || 'błąd wysyłki' };
+    alert(`Nie udało się otworzyć pliku:\n${(err && err.message) || 'nieznany błąd'}`);
   }
-  state.rowSending[f.organizacja] = false;
-  state.sendResults[f.organizacja] = { ok: !!(res && res.ok), error: res && res.error };
-  render();
 }
 
 function plik(n) {
