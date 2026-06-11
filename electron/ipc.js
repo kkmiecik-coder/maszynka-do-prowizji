@@ -13,7 +13,8 @@ import { sendBatch, verifySmtp, renderTemplate, renderHtml } from '../src/mailer
 import { makeSaveSent, testImap as testImapCore } from '../src/imap.js';
 import { parseMappingCsv } from '../src/csv.js';
 import { detectPeriod, formatPeriod } from '../src/period.js';
-import { SHEET, PERIOD_COL } from '../src/constants.js';
+import { resolveColIndex } from '../src/columns.js';
+import { SHEET, PERIOD_COL, PERIOD_COL_NAME } from '../src/constants.js';
 
 // Składa surową wiadomość RFC822 z obiektu nodemailera (do IMAP APPEND).
 const buildRaw = (message) => new Promise((resolve, reject) => {
@@ -126,6 +127,7 @@ export function registerIpc() {
     const detName = await findSheetByPrefix(playPath, SHEET.DETAIL);
     if (!detName) throw new Error('Wybrany plik Play_dealer nie zawiera arkusza „dane do plików". Czy na pewno wskazano właściwy plik?');
     const { rows: detail } = await readSheetRows(playPath, detName);
+    const detailHeader = detail[0] || []; // nagłówek źródła — do dynamicznego mapowania kolumn
     prog({ phase: 'read', message: 'Wczytuję plik Analiza…' });
     const posName = await findSheetByPrefix(analPath, SHEET.SUMMARY_POS);
     const dbName = await findSheetByPrefix(analPath, SHEET.SUMMARY_DB);
@@ -133,7 +135,10 @@ export function registerIpc() {
     const posSum = posName ? (await readSheetRows(analPath, posName)).rows : [];
     const dbSum = dbName ? (await readSheetRows(analPath, dbName)).rows : [];
     prog({ phase: 'build', message: 'Dopasowuję dane i wykrywam okres…' });
-    const periodInfo = detectPeriod(detail.slice(1).map(r => r[PERIOD_COL - 1]).filter(Boolean));
+    // Kolumna "Okres Rozl." mapowana hybrydowo (pozycja zmienna między okresami).
+    const periodIdx = resolveColIndex(detailHeader, PERIOD_COL_NAME, PERIOD_COL - 1);
+    const periodCol = periodIdx >= 0 ? periodIdx : PERIOD_COL - 1;
+    const periodInfo = detectPeriod(detail.slice(1).map(r => r[periodCol]).filter(Boolean));
     const period = formatPeriod(periodInfo.period);
     const files = [
       ...buildFiles(posSum.slice(1), detail.slice(1), 'POS'),
@@ -148,7 +153,7 @@ export function registerIpc() {
       const f = files[i];
       prog({ phase: 'write', index: i + 1, total, organizacja: f.organizacja });
       const outPath = join(folder, `${f.organizacja} ${period}.xlsx`);
-      await saveFile(f, TPL(f.kanal === 'POS' ? 'pos-template.xlsx' : 'db-template.xlsx'), outPath);
+      await saveFile(f, TPL(f.kanal === 'POS' ? 'pos-template.xlsx' : 'db-template.xlsx'), outPath, detailHeader);
       const rec = resolveRecipient(cfg, f);
       out.push({ organizacja: f.organizacja, kanal: f.kanal, sidy: f.sidy, path: outPath, email: rec.email || null, emailError: rec.error || null });
     }

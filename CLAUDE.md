@@ -39,10 +39,18 @@ Two-process Electron split with a hard boundary: **`src/` is pure, testable busi
 
 1. `reader.js` reads the two source workbooks into plain arrays of arrays.
 2. `validate.js` checks files by **column-header structure**, not sheet name or filename.
-3. `period.js` detects the billing period from the `Okres Rozl.` column (most frequent `YYYYMM`).
+3. `period.js` detects the billing period from the `Okres Rozl.` column (most frequent `YYYYMM`). **That column is located by name, hybrid-mapped** (see below) — its position drifts between months.
 4. `engine.js` (`buildFiles`) groups summary rows by `Organizacja` and joins detail rows by an exact key match.
-5. `generator.js` clones the matching template workbook and injects rows, preserving styling.
+5. `generator.js` clones the matching template workbook and injects rows, preserving styling. The detail block's columns are mapped **dynamically** (see below).
 6. `config.js`/`mailer.js` resolve recipients and send emails sequentially with a configurable delay.
+
+### Dynamic column mapping (`src/columns.js`) — load-bearing
+
+The `Play_dealer` source ("dane do plików" sheet) **changes its column layout between billing periods** — e.g. April added a `Nazwa Partnera` column at position 4, shifting everything (including `DO WYPŁATY`) right by one. Hardcoded column indices silently corrupt output (wrong column harvested, `DO WYPŁATY` truncated). So columns are mapped **hybrid**: `resolveColIndex(headerRow, expectedName, defaultIdx)` first checks the default position; if the header there doesn't match, it falls back to finding the column **by name**. `buildDetailPlan(headerRow)` returns the output columns from `Nazwa Firmy` to `DO WYPŁATY` inclusive, in source order — so `Nazwa Partnera` appears in output iff present in source (March = 41 cols, April = 42). `Struktura`/`Firma` (after `DO WYPŁATY`) are excluded.
+- `generator.js` receives the **source header row** as a 4th arg (`saveFile(file, tpl, outPath, detailHeader)`); `ipc.js` passes `detail[0]` before `.slice(1)`. It writes the detail header row **dynamically** from the plan, anchors per-cell styles **by column name** (not position) from the template's row 6 style bank, and **forces numFmt by name** (`DETAIL_COL_NUMFMT`: date on `Data Kontraktu`, currency on `DO WYPŁATY`) so currency/date land correctly regardless of shift. The template's static detail header (row 5) is overwritten — templates need not be regenerated for layout changes.
+- The summary (top) block (`SUMMARY` cols, from `Analiza`) is **stable** across months and still mapped positionally.
+- `engine.js` join keys (`DETAIL_KEY_COL` = SID POS col 1 / SID Sprzed. col 2) are also stable and unchanged.
+- Verified: regenerating March (41 cols) and April (42 cols) from real sources reproduces the client's hand-made reference files **cell-for-cell, zero diffs**.
 
 ### Source / output file conventions
 
