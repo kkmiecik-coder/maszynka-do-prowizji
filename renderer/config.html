@@ -22,25 +22,11 @@
         <h1 class="panel-title">Konfiguracja</h1>
         <p class="panel-sub">Ustaw konto pocztowe, treść wiadomości i listę adresatów. Zmiany zapisz przyciskiem na dole.</p>
 
-        <!-- SMTP -->
+        <!-- Konto e-mail: wspólny login/hasło/nadawca + osobne serwery SMTP i IMAP -->
         <section class="card">
-          <h2>Konto SMTP</h2>
+          <h2>Konto e-mail</h2>
+          <p class="var-hint" style="margin-top:0;margin-bottom:12px">Login i hasło są wspólne dla wysyłki (SMTP) i kopii w „Wysłane" (IMAP) — to te same dane logowania do skrzynki. Serwery i porty podaj osobno, bo wysyłka i kopia używają różnych serwerów.</p>
           <div class="form-grid">
-            <div class="field col-6">
-              <label for="host">Serwer (host)</label>
-              <input id="host" type="text" placeholder="np. smtp.poczta.pl" />
-            </div>
-            <div class="field col-3">
-              <label for="port">Port</label>
-              <input id="port" type="number" min="1" max="65535" />
-            </div>
-            <div class="field col-3">
-              <label for="secure">Szyfrowanie</label>
-              <select id="secure">
-                <option value="false">STARTTLS / brak</option>
-                <option value="true">SSL/TLS</option>
-              </select>
-            </div>
             <div class="field col-6">
               <label for="user">Login</label>
               <input id="user" type="text" autocomplete="username" />
@@ -54,18 +40,33 @@
               <input id="from" type="text" placeholder="np. prowizje@firma.pl" />
             </div>
           </div>
-          <div class="toolbar-row" style="margin-top:16px;margin-bottom:0">
+
+          <h3 class="subhead">Serwer wysyłający (SMTP)</h3>
+          <div class="form-grid">
+            <div class="field col-6">
+              <label for="host">Serwer (host)</label>
+              <input id="host" type="text" placeholder="np. smtp.poczta.pl" />
+            </div>
+            <div class="field col-3">
+              <label for="port">Port</label>
+              <input id="port" type="number" min="1" max="65535" placeholder="587" />
+            </div>
+            <div class="field col-3">
+              <label for="secure">Szyfrowanie</label>
+              <select id="secure">
+                <option value="false">STARTTLS / brak</option>
+                <option value="true">SSL/TLS</option>
+              </select>
+            </div>
+          </div>
+          <div class="toolbar-row" style="margin-top:14px;margin-bottom:0">
             <button class="btn btn-secondary" id="testBtn" type="button">Testuj połączenie</button>
             <button class="btn btn-secondary" id="sampleBtn" type="button">Wyślij próbnego maila</button>
             <span class="test-result" id="testResult"></span>
           </div>
-          <p class="var-hint" style="margin-top:8px">Próbny mail trafi na adres nadawcy (lub login) i będzie zawierał treść szablonu oraz przykładowy plik <code>.xlsx</code>.</p>
-        </section>
 
-        <!-- IMAP: kopia w „Wysłane" -->
-        <section class="card">
-          <h2>Kopia w „Wysłane" (opcjonalnie)</h2>
-          <p class="var-hint" style="margin-top:0;margin-bottom:12px">Jeśli wypełnisz dane IMAP, każda wysłana wiadomość zapisze się też w folderze „Wysłane" na serwerze — pojawi się w Twoim Outlooku/OWA. Zostaw puste, aby wyłączyć.</p>
+          <h3 class="subhead">Kopia w „Wysłane" (IMAP, opcjonalnie)</h3>
+          <p class="var-hint" style="margin-top:0;margin-bottom:12px">Jeśli wypełnisz serwer IMAP, każda wysłana wiadomość zapisze się też w folderze „Wysłane" na serwerze — pojawi się w Twoim Outlooku/OWA. Zostaw host pusty, aby wyłączyć.</p>
           <div class="form-grid">
             <div class="field col-6">
               <label for="imapHost">Serwer IMAP (host)</label>
@@ -82,21 +83,13 @@
                 <option value="false">STARTTLS / brak</option>
               </select>
             </div>
-            <div class="field col-6">
-              <label for="imapUser">Login</label>
-              <input id="imapUser" type="text" autocomplete="off" />
-            </div>
-            <div class="field col-6">
-              <label for="imapPassword">Hasło</label>
-              <input id="imapPassword" type="password" autocomplete="off" />
-            </div>
             <div class="field col-12">
               <label for="imapSentMailbox">Nazwa folderu „Wysłane" (opcjonalnie)</label>
               <input id="imapSentMailbox" type="text" placeholder="zostaw puste = wykryj automatycznie" />
               <p class="var-hint" style="margin-top:2px">Najlepiej zostaw puste — program sam wykryje folder wysłanych. Wpisz nazwę ręcznie tylko, jeśli autodetekcja zawiedzie (np. <code>Sent</code>, <code>Wysłane</code>).</p>
             </div>
           </div>
-          <div class="toolbar-row" style="margin-top:16px;margin-bottom:0">
+          <div class="toolbar-row" style="margin-top:14px;margin-bottom:0">
             <button class="btn btn-secondary" id="imapTestBtn" type="button">Testuj IMAP</button>
             <span class="test-result" id="imapTestResult"></span>
           </div>

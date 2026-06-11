@@ -310,6 +310,16 @@ body {
   font-weight: 600;
   margin: 0 0 16px;
 }
+.card .subhead {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin: 22px 0 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
 .card .card-hint {
   color: var(--ink-soft);
   font-size: 13px;

@@ -26,18 +26,18 @@ async function init() {
 }
 
 function populate() {
+  const imap = cfg.imap || {};
+  // Login i hasło są wspólne — bierzemy ze SMTP (fallback do IMAP dla starych configów,
+  // gdzie IMAP mógł mieć osobne dane logowania).
+  $('#user').value = cfg.smtp.user || imap.user || '';
+  $('#password').value = cfg.smtp.password || imap.password || '';
+  $('#from').value = cfg.smtp.from || '';
   $('#host').value = cfg.smtp.host || '';
   $('#port').value = cfg.smtp.port ?? 587;
   $('#secure').value = cfg.smtp.secure ? 'true' : 'false';
-  $('#user').value = cfg.smtp.user || '';
-  $('#password').value = cfg.smtp.password || '';
-  $('#from').value = cfg.smtp.from || '';
-  const imap = cfg.imap || {};
   $('#imapHost').value = imap.host || '';
   $('#imapPort').value = imap.port ?? 993;
   $('#imapSecure').value = imap.secure === false ? 'false' : 'true';
-  $('#imapUser').value = imap.user || '';
-  $('#imapPassword').value = imap.password || '';
   $('#imapSentMailbox').value = imap.sentMailbox || ''; // puste = autodetekcja
   $('#subject').value = cfg.mail.subject || '';
   $('#body').value = cfg.mail.body || '';
@@ -64,13 +64,17 @@ function updateFooterPreview() {
 
 // ===== Collect form into cfg =====
 function collect() {
+  // Login i hasło są wspólne dla SMTP i IMAP — kopiujemy je do obu sekcji,
+  // by backend (osobne sekcje cfg.smtp / cfg.imap) działał bez zmian.
+  const user = $('#user').value.trim();
+  const password = $('#password').value;
   return {
     smtp: {
       host: $('#host').value.trim(),
       port: Number($('#port').value) || 0,
       secure: $('#secure').value === 'true',
-      user: $('#user').value.trim(),
-      password: $('#password').value,
+      user,
+      password,
       from: $('#from').value.trim(),
       passwordEnc: cfg.smtp.passwordEnc ?? null,
     },
@@ -78,8 +82,8 @@ function collect() {
       host: $('#imapHost').value.trim(),
       port: Number($('#imapPort').value) || 993,
       secure: $('#imapSecure').value === 'true',
-      user: $('#imapUser').value.trim(),
-      password: $('#imapPassword').value,
+      user,
+      password,
       sentMailbox: $('#imapSentMailbox').value.trim(), // puste = autodetekcja na serwerze
       passwordEnc: (cfg.imap && cfg.imap.passwordEnc) ?? null,
     },
