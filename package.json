@@ -9,7 +9,7 @@
     "dist": "electron-builder",
     "dist:mac": "electron-builder --mac",
     "dist:win": "electron-builder --win",
-    "release:win": "electron-builder --win --publish always"
+    "release:win": "node scripts/release.js --win"
   },
   "keywords": [],
   "author": "",

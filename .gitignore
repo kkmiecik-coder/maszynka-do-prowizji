@@ -3,3 +3,7 @@ dist/
 Prowizje/
 !templates/*.xlsx
 .DS_Store
+# Sekrety — token GitHub do publikacji wydań. NIGDY nie commitować.
+.env
+.env.*
+!.env.example
