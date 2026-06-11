@@ -52,6 +52,13 @@ The `Play_dealer` source ("dane do plików" sheet) **changes its column layout b
 - `engine.js` join keys (`DETAIL_KEY_COL` = SID POS col 1 / SID Sprzed. col 2) are also stable and unchanged.
 - Verified: regenerating March (41 cols) and April (42 cols) from real sources reproduces the client's hand-made reference files **cell-for-cell, zero diffs**.
 
+### Building "dane do plików" from "dane" (`src/daneDoPlikow.js`)
+
+The `Play_dealer` workbook also has a raw **`dane`** sheet (64 cols, headers in **row 3**) that the client manually transforms into `dane do plików`. The `generate` handler now **falls back to building it in-flight** when `dane do plików` is absent: `if no "dane do plików" sheet → read "dane" + dictionary, call buildDaneDoPlikow(...)`. The recipe was reverse-engineered and verified **cell-for-cell zero-diff against the existing sheet for both March and April**:
+- Most columns are 1:1 copies (mapped by name). **Three conditional rules:** (1) `DO WYPŁATY` ← `% Circus`; if `% Circus` is blank → blank when `Struktura` is `Play Own`, else `0`. (2) `Nazwa Firmy`: POS (Firma non-empty) → substring before `" - "` (`WŁASNY - Kraków` → `WŁASNY`); DB (Firma empty) → looked up in the **SID→name dictionary** from `Analiza`'s `Strumienie per POS` sheet (col `SID ID` → col `Organizacja`, trailing apostrophe stripped). (3) multipliers are plain copies.
+- `cellValue()` resolves formula cells (`{formula,result}`) — `% Circus` is a formula and blank-result formulas must count as empty (that's the `→ 0` branch).
+- The built sheet **always includes `Nazwa Partnera`** (col 2 of the detail block) — the newest output format. Downstream mapping is by name, so the extra column is harmless. `scripts/verify-ddp.js` regenerates and diffs against the embedded sheet.
+
 ### Source / output file conventions
 
 - **Source A — `Play_dealer_*.xlsx`** (large, ~11 MB / ~20k rows): sheet matched by prefix `dane do plików` → detail/transaction lines (bottom block of output).

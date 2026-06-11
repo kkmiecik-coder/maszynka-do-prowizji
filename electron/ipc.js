@@ -14,7 +14,8 @@ import { makeSaveSent, testImap as testImapCore } from '../src/imap.js';
 import { parseMappingCsv } from '../src/csv.js';
 import { detectPeriod, formatPeriod } from '../src/period.js';
 import { resolveColIndex } from '../src/columns.js';
-import { SHEET, PERIOD_COL, PERIOD_COL_NAME } from '../src/constants.js';
+import { buildDaneDoPlikow, buildSlownikDB } from '../src/daneDoPlikow.js';
+import { SHEET, PERIOD_COL, PERIOD_COL_NAME, RAW_HEADER_ROW } from '../src/constants.js';
 
 // Składa surową wiadomość RFC822 z obiektu nodemailera (do IMAP APPEND).
 const buildRaw = (message) => new Promise((resolve, reject) => {
@@ -124,16 +125,32 @@ export function registerIpc() {
   ipcMain.handle('generate', async (e, { playPath, analPath, outDir }) => {
     const prog = (p) => e.sender.send('generate-progress', p);
     prog({ phase: 'read', message: 'Wczytuję plik Play_dealer (duży, może chwilę potrwać)…' });
-    const detName = await findSheetByPrefix(playPath, SHEET.DETAIL);
-    if (!detName) throw new Error('Wybrany plik Play_dealer nie zawiera arkusza „dane do plików". Czy na pewno wskazano właściwy plik?');
-    const { rows: detail } = await readSheetRows(playPath, detName);
-    const detailHeader = detail[0] || []; // nagłówek źródła — do dynamicznego mapowania kolumn
     prog({ phase: 'read', message: 'Wczytuję plik Analiza…' });
     const posName = await findSheetByPrefix(analPath, SHEET.SUMMARY_POS);
     const dbName = await findSheetByPrefix(analPath, SHEET.SUMMARY_DB);
     if (!posName && !dbName) throw new Error('Wybrany plik Analiza nie zawiera arkuszy „dane do plików POS/DB". Czy na pewno wskazano właściwy plik?');
     const posSum = posName ? (await readSheetRows(analPath, posName)).rows : [];
     const dbSum = dbName ? (await readSheetRows(analPath, dbName)).rows : [];
+
+    // Zakładka szczegółów: użyj gotowej "dane do plików"; gdy jej brak — zbuduj w locie
+    // z surowej zakładki "dane" + słownik nazw DB z pliku Analiza ("Strumienie per POS").
+    let detail;
+    const detName = await findSheetByPrefix(playPath, SHEET.DETAIL);
+    if (detName) {
+      detail = (await readSheetRows(playPath, detName)).rows;
+    } else {
+      const rawName = await findSheetByPrefix(playPath, SHEET.RAW);
+      if (!rawName) throw new Error('Wybrany plik Play_dealer nie zawiera arkusza „dane do plików" ani „dane". Czy na pewno wskazano właściwy plik?');
+      prog({ phase: 'build', message: 'Buduję dane do plików z zakładki „dane"…' });
+      const raw = (await readSheetRows(playPath, rawName)).rows;
+      const rawHeader = raw[RAW_HEADER_ROW - 1] || []; // nagłówki "dane" są w wierszu 3
+      const rawData = raw.slice(RAW_HEADER_ROW);       // dane od wiersza 4
+      const dictName = await findSheetByPrefix(analPath, SHEET.DICT);
+      const slownikDB = dictName ? buildSlownikDB((await readSheetRows(analPath, dictName)).rows) : {};
+      const built = buildDaneDoPlikow(rawHeader, rawData, slownikDB);
+      detail = [built.header, ...built.rows]; // nagłówek na pozycji 0 (jak readSheetRows)
+    }
+    const detailHeader = detail[0] || []; // nagłówek szczegółów — do dynamicznego mapowania kolumn
     prog({ phase: 'build', message: 'Dopasowuję dane i wykrywam okres…' });
     // Kolumna "Okres Rozl." mapowana hybrydowo (pozycja zmienna między okresami).
     const periodIdx = resolveColIndex(detailHeader, PERIOD_COL_NAME, PERIOD_COL - 1);

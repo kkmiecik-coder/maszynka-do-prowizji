@@ -1,8 +1,12 @@
 export const SHEET = {
-  DETAIL: 'dane do plików',          // w pliku Play_dealer
+  DETAIL: 'dane do plików',          // w pliku Play_dealer (gotowa zakładka)
+  RAW: 'dane',                        // surowe dane — gdy brak "dane do plików", budujemy z niej
   SUMMARY_POS: 'dane do plików POS',  // prefiks
   SUMMARY_DB: 'dane do plików DB',    // prefiks
+  DICT: 'Strumienie per POS',         // w pliku Analiza — słownik SID→Nazwa Firmy (dla DB)
 };
+// Wiersz nagłówków zakładki "dane" (surowej) — nagłówki są w wierszu 3, nie 1.
+export const RAW_HEADER_ROW = 3;
 
 // kolumny 1-based w arkuszu 'dane do plików'
 export const DETAIL_KEY_COL = { POS: 1, DB: 2 }; // SID POS / SID Sprzed.
