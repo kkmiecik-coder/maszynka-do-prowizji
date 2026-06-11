@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maszynka do prowizji</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">M</span>
+        <span>Maszynka do prowizji</span>
+      </div>
+      <span class="spacer"></span>
+      <button class="gear" id="configBtn" type="button" title="Konfiguracja" aria-label="Konfiguracja">⚙</button>
+    </header>
+
+    <nav class="stepper" id="stepper" aria-label="Kroki">
+      <button class="step" data-step="1" type="button">
+        <span class="dot">1</span><span class="text">Źródła</span>
+      </button>
+      <span class="connector"></span>
+      <button class="step" data-step="2" type="button">
+        <span class="dot">2</span><span class="text">Pliki</span>
+      </button>
+      <span class="connector"></span>
+      <button class="step" data-step="3" type="button">
+        <span class="dot">3</span><span class="text">Wysyłka</span>
+      </button>
+    </nav>
+
+    <main class="main">
+      <div class="panel" id="panel"></div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-info" id="footerInfo"></div>
+      <div class="footer-actions" id="footerActions"></div>
+    </footer>
+  </div>
+
+  <!-- Dyskretny komunikat o aktualizacji (auto-update). Domyślnie ukryty. -->
+  <div class="update-toast" id="updateToast" hidden></div>
+
+  <script src="main.ui.js"></script>
+</body>
+</html>

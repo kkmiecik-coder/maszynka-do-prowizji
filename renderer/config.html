@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Konfiguracja · Maszynka do prowizji</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">M</span>
+        <span>Maszynka do prowizji · Konfiguracja</span>
+      </div>
+      <span class="spacer"></span>
+      <button class="gear" id="closeBtn" type="button" title="Zamknij" aria-label="Zamknij konfigurację">✕</button>
+    </header>
+
+    <main class="main">
+      <div class="panel">
+        <h1 class="panel-title">Konfiguracja</h1>
+        <p class="panel-sub">Ustaw konto pocztowe, treść wiadomości i listę adresatów. Zmiany zapisz przyciskiem na dole.</p>
+
+        <!-- SMTP -->
+        <section class="card">
+          <h2>Konto SMTP</h2>
+          <div class="form-grid">
+            <div class="field col-6">
+              <label for="host">Serwer (host)</label>
+              <input id="host" type="text" placeholder="np. smtp.poczta.pl" />
+            </div>
+            <div class="field col-3">
+              <label for="port">Port</label>
+              <input id="port" type="number" min="1" max="65535" />
+            </div>
+            <div class="field col-3">
+              <label for="secure">Szyfrowanie</label>
+              <select id="secure">
+                <option value="false">STARTTLS / brak</option>
+                <option value="true">SSL/TLS</option>
+              </select>
+            </div>
+            <div class="field col-6">
+              <label for="user">Login</label>
+              <input id="user" type="text" autocomplete="username" />
+            </div>
+            <div class="field col-6">
+              <label for="password">Hasło</label>
+              <input id="password" type="password" autocomplete="current-password" />
+            </div>
+            <div class="field col-12">
+              <label for="from">Adres nadawcy</label>
+              <input id="from" type="text" placeholder="np. prowizje@firma.pl" />
+            </div>
+          </div>
+          <div class="toolbar-row" style="margin-top:16px;margin-bottom:0">
+            <button class="btn btn-secondary" id="testBtn" type="button">Testuj połączenie</button>
+            <button class="btn btn-secondary" id="sampleBtn" type="button">Wyślij próbnego maila</button>
+            <span class="test-result" id="testResult"></span>
+          </div>
+          <p class="var-hint" style="margin-top:8px">Próbny mail trafi na adres nadawcy (lub login) i będzie zawierał treść szablonu oraz przykładowy plik <code>.xlsx</code>.</p>
+        </section>
+
+        <!-- IMAP: kopia w „Wysłane" -->
+        <section class="card">
+          <h2>Kopia w „Wysłane" (opcjonalnie)</h2>
+          <p class="var-hint" style="margin-top:0;margin-bottom:12px">Jeśli wypełnisz dane IMAP, każda wysłana wiadomość zapisze się też w folderze „Wysłane" na serwerze — pojawi się w Twoim Outlooku/OWA. Zostaw puste, aby wyłączyć.</p>
+          <div class="form-grid">
+            <div class="field col-6">
+              <label for="imapHost">Serwer IMAP (host)</label>
+              <input id="imapHost" type="text" placeholder="np. imap.poczta.pl" />
+            </div>
+            <div class="field col-3">
+              <label for="imapPort">Port</label>
+              <input id="imapPort" type="number" min="1" max="65535" placeholder="993" />
+            </div>
+            <div class="field col-3">
+              <label for="imapSecure">Szyfrowanie</label>
+              <select id="imapSecure">
+                <option value="true">SSL/TLS (993)</option>
+                <option value="false">STARTTLS / brak</option>
+              </select>
+            </div>
+            <div class="field col-6">
+              <label for="imapUser">Login</label>
+              <input id="imapUser" type="text" autocomplete="off" />
+            </div>
+            <div class="field col-6">
+              <label for="imapPassword">Hasło</label>
+              <input id="imapPassword" type="password" autocomplete="off" />
+            </div>
+            <div class="field col-12">
+              <label for="imapSentMailbox">Nazwa folderu „Wysłane" (opcjonalnie)</label>
+              <input id="imapSentMailbox" type="text" placeholder="zostaw puste = wykryj automatycznie" />
+              <p class="var-hint" style="margin-top:2px">Najlepiej zostaw puste — program sam wykryje folder wysłanych. Wpisz nazwę ręcznie tylko, jeśli autodetekcja zawiedzie (np. <code>Sent</code>, <code>Wysłane</code>).</p>
+            </div>
+          </div>
+          <div class="toolbar-row" style="margin-top:16px;margin-bottom:0">
+            <button class="btn btn-secondary" id="imapTestBtn" type="button">Testuj IMAP</button>
+            <span class="test-result" id="imapTestResult"></span>
+          </div>
+        </section>
+
+        <!-- Mail template -->
+        <section class="card">
+          <h2>Szablon e-maila</h2>
+          <div class="form-grid">
+            <div class="field col-9">
+              <label for="subject">Temat</label>
+              <input id="subject" type="text" />
+            </div>
+            <div class="field col-3">
+              <label for="delaySeconds">Odstęp (sekundy)</label>
+              <input id="delaySeconds" type="number" min="0" />
+            </div>
+            <div class="field col-12">
+              <label for="body">Treść</label>
+              <textarea id="body" rows="4"></textarea>
+            </div>
+            <div class="field col-12">
+              <label for="footer">Stopka (kod HTML)</label>
+              <textarea id="footer" rows="5" class="mono-input" placeholder="np. &lt;p&gt;Pozdrawiamy,&lt;br&gt;Zespół RS Holding&lt;/p&gt;"></textarea>
+              <p class="var-hint" style="margin-top:2px">Wklej kod HTML stopki — zostanie wstawiony do wiadomości. Poniżej podgląd.</p>
+              <div class="html-preview" id="footerPreview" aria-label="Podgląd stopki"></div>
+            </div>
+          </div>
+          <p class="var-hint">Dostępne zmienne: <code>{Organizacja}</code> <code>{okres}</code></p>
+        </section>
+
+        <!-- Recipients -->
+        <section class="card">
+          <h2>Adresaci (mapowanie)</h2>
+          <div class="toolbar-row">
+            <button class="btn btn-secondary" id="importBtn" type="button">Importuj CSV</button>
+            <input id="csvInput" type="file" accept=".csv" class="hidden" />
+            <span class="card-hint" style="margin:0">Import dołącza wiersze do istniejącej listy.</span>
+          </div>
+
+          <div class="csv-help">
+            <div class="csv-help-title">Jak powinien wyglądać plik CSV?</div>
+            <p class="csv-help-text">Trzy kolumny w kolejności: <strong>Organizacja</strong>, <strong>SID</strong>, <strong>e-mail</strong>. Rozdzielone średnikiem <code>;</code> lub przecinkiem <code>,</code>. Pierwszy wiersz z nagłówkami jest opcjonalny. Liczy się kolejność kolumn, nie ich nazwy.</p>
+            <table class="csv-sample">
+              <thead>
+                <tr><th>Organizacja</th><th>SID</th><th>E-mail</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>FIRMA ALFA</td><td class="mono">D001211</td><td class="mono">alfa@przyklad.pl</td></tr>
+                <tr><td>FIRMA BETA</td><td class="mono">D004240</td><td class="mono">beta@przyklad.pl</td></tr>
+              </tbody>
+            </table>
+            <div class="csv-raw mono">Organizacja;SID;E-mail
+FIRMA ALFA;D001211;alfa@przyklad.pl
+FIRMA BETA;D004240;beta@przyklad.pl</div>
+          </div>
+
+          <div class="inline-add">
+            <div class="field">
+              <label for="newOrg">Organizacja</label>
+              <input id="newOrg" type="text" />
+            </div>
+            <div class="field">
+              <label for="newSid">SID</label>
+              <input id="newSid" type="text" class="mono-input" />
+            </div>
+            <div class="field">
+              <label for="newEmail">E-mail</label>
+              <input id="newEmail" type="text" class="mono-input" />
+            </div>
+            <button class="btn btn-secondary" id="addBtn" type="button">Dodaj</button>
+          </div>
+
+          <div class="ledger-wrap">
+            <table class="map-table">
+              <thead>
+                <tr><th>Organizacja</th><th>SID</th><th>E-mail</th><th style="width:60px"></th></tr>
+              </thead>
+              <tbody id="mapBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-info"><button class="btn-ghost" id="closeBtn2" type="button">← Zamknij</button></div>
+      <div class="footer-actions">
+        <span class="save-status" id="saveStatus"></span>
+        <button class="btn btn-primary" id="saveBtn" type="button">Zapisz</button>
+      </div>
+    </footer>
+  </div>
+
+  <script src="config.ui.js"></script>
+</body>
+</html>

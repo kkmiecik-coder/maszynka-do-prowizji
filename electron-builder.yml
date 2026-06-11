@@ -1,0 +1,25 @@
+appId: pl.rsholding.maszynka-prowizji
+productName: Maszynka do prowizji
+directories:
+  output: dist
+files:
+  - electron/**
+  - renderer/**
+  - src/**
+  - package.json
+extraResources:
+  - from: templates
+    to: templates
+# Auto-aktualizacja: pliki wydań pobierane z GitHub Releases (repo publiczne).
+publish:
+  - provider: github
+    owner: kkmiecik-coder
+    repo: maszynka-do-prowizji
+mac:
+  target: dmg
+  category: public.app-category.business
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
