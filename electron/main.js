@@ -11,7 +11,7 @@ let configWin = null;
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 1100, height: 720,
+    width: 1100, height: 860,
     webPreferences: { preload: PRELOAD(), contextIsolation: true, nodeIntegration: false },
   });
   win.loadFile(join(__dirname, '..', 'renderer', 'index.html'));
