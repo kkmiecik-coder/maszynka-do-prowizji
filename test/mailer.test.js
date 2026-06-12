@@ -28,8 +28,8 @@ test('sendBatch: wysyła sekwencyjnie i raportuje', async () => {
     sleep: async () => {},
   };
   const jobs = [
-    { organizacja: 'A', email: 'a@x.pl', attachmentPath: '/a.xlsx', period: '04.2026' },
-    { organizacja: 'B', email: 'b@x.pl', attachmentPath: '/b.xlsx', period: '04.2026' },
+    { organizacja: 'A', emails: ['a@x.pl'], attachmentPath: '/a.xlsx', period: '04.2026' },
+    { organizacja: 'B', emails: ['b@x.pl'], attachmentPath: '/b.xlsx', period: '04.2026' },
   ];
   const progress = [];
   const res = await sendBatch(deps, { host: 'h' }, { subject: 'S {okres}', body: 'B {Organizacja}', footer: '', delaySeconds: 0 }, jobs, p => progress.push(p));
@@ -47,7 +47,7 @@ test('sendBatch: błąd jednego nie blokuje reszty', async () => {
     createTransport: () => ({ sendMail: async (m) => { if (m.to === 'a@x.pl') throw new Error('boom'); return {}; } }),
     sleep: async () => {},
   };
-  const jobs = [{ organizacja: 'A', email: 'a@x.pl', attachmentPath: '/a', period: 'p' }, { organizacja: 'B', email: 'b@x.pl', attachmentPath: '/b', period: 'p' }];
+  const jobs = [{ organizacja: 'A', emails: ['a@x.pl'], attachmentPath: '/a', period: 'p' }, { organizacja: 'B', emails: ['b@x.pl'], attachmentPath: '/b', period: 'p' }];
   const res = await sendBatch(deps, {}, { subject: 's', body: 'b', footer: '', delaySeconds: 0 }, jobs);
   assert.equal(res[0].ok, false);
   assert.equal(typeof res[0].error, 'string');
@@ -62,10 +62,10 @@ test('sendBatch: pomija joby bez maila i raportuje "pominięto"', async () => {
     sleep: async () => {},
   };
   const jobs = [
-    { organizacja: 'A', email: 'a@x.pl', attachmentPath: '/a', period: 'p' },
-    { organizacja: 'B', email: '', attachmentPath: '/b', period: 'p' },   // brak maila
-    { organizacja: 'C', email: null, attachmentPath: '/c', period: 'p' }, // brak maila
-    { organizacja: 'D', email: 'd@x.pl', attachmentPath: '/d', period: 'p' },
+    { organizacja: 'A', emails: ['a@x.pl'], attachmentPath: '/a', period: 'p' },
+    { organizacja: 'B', emails: [], attachmentPath: '/b', period: 'p' },
+    { organizacja: 'C', emails: [], attachmentPath: '/c', period: 'p' },
+    { organizacja: 'D', emails: ['d@x.pl'], attachmentPath: '/d', period: 'p' },
   ];
   const progress = [];
   const res = await sendBatch(deps, {}, { subject: 's', body: 'b', footer: '', delaySeconds: 0 }, jobs, p => progress.push(p));
@@ -91,9 +91,9 @@ test('sendBatch: pominięte joby nie wywołują opóźnienia', async () => {
   };
   // A wysłane, B pominięte, C wysłane → tylko jedno realne opóźnienie (między A i C)
   const jobs = [
-    { organizacja: 'A', email: 'a@x.pl', attachmentPath: '/a', period: 'p' },
-    { organizacja: 'B', email: '', attachmentPath: '/b', period: 'p' },
-    { organizacja: 'C', email: 'c@x.pl', attachmentPath: '/c', period: 'p' },
+    { organizacja: 'A', emails: ['a@x.pl'], attachmentPath: '/a', period: 'p' },
+    { organizacja: 'B', emails: [], attachmentPath: '/b', period: 'p' },
+    { organizacja: 'C', emails: ['c@x.pl'], attachmentPath: '/c', period: 'p' },
   ];
   await sendBatch(deps, {}, { subject: 's', body: 'b', footer: '', delaySeconds: 2 }, jobs);
   assert.equal(sleepCalls.length, 1, 'opóźnienie tylko między realnie wysłanymi mailami');
@@ -106,14 +106,42 @@ test('sendBatch: opóźnienie jest respektowane (antyspam)', async () => {
     sleep: async (ms) => { sleepCalls.push(ms); },
   };
   const jobs = [
-    { organizacja: 'A', email: 'a@x.pl', attachmentPath: '/a', period: 'p' },
-    { organizacja: 'B', email: 'b@x.pl', attachmentPath: '/b', period: 'p' },
-    { organizacja: 'C', email: 'c@x.pl', attachmentPath: '/c', period: 'p' },
+    { organizacja: 'A', emails: ['a@x.pl'], attachmentPath: '/a', period: 'p' },
+    { organizacja: 'B', emails: ['b@x.pl'], attachmentPath: '/b', period: 'p' },
+    { organizacja: 'C', emails: ['c@x.pl'], attachmentPath: '/c', period: 'p' },
   ];
   await sendBatch(deps, {}, { subject: 's', body: 'b', footer: '', delaySeconds: 2 }, jobs);
   // sleep should be called jobs.length - 1 times (between sends, not after last)
   assert.equal(sleepCalls.length, jobs.length - 1, 'sleep powinno być wywołane length-1 razy');
   assert.ok(sleepCalls.every(ms => ms === 2000), 'każde opóźnienie powinno wynosić 2000ms');
+});
+
+test('sendBatch: wiele maili w jobie → osobna wiadomość do każdego, odstęp między każdą', async () => {
+  const sent = [];
+  const sleepCalls = [];
+  const deps = {
+    createTransport: () => ({ sendMail: async (m) => { sent.push(m.to); return {}; } }),
+    sleep: async (ms) => { sleepCalls.push(ms); },
+  };
+  const jobs = [{ organizacja: 'A', emails: ['a1@x.pl', 'a2@x.pl'], attachmentPath: '/a', period: 'p' }];
+  const res = await sendBatch(deps, { host: 'h' }, { subject: 's', body: 'b', footer: '', delaySeconds: 2 }, jobs);
+  assert.deepEqual(sent, ['a1@x.pl', 'a2@x.pl']);
+  assert.equal(sleepCalls.length, 1, 'jeden odstęp między dwoma adresami tego samego pliku');
+  assert.equal(res[0].ok, true);
+  assert.deepEqual(res[0].sent, ['a1@x.pl', 'a2@x.pl']);
+});
+
+test('sendBatch: częściowy błąd jednego adresu → ok=true, errors zawiera nieudany', async () => {
+  const deps = {
+    createTransport: () => ({ sendMail: async (m) => { if (m.to === 'bad@x.pl') throw new Error('boom'); return {}; } }),
+    sleep: async () => {},
+  };
+  const jobs = [{ organizacja: 'A', emails: ['ok@x.pl', 'bad@x.pl'], attachmentPath: '/a', period: 'p' }];
+  const res = await sendBatch(deps, {}, { subject: 's', body: 'b', footer: '', delaySeconds: 0 }, jobs);
+  assert.equal(res[0].ok, true, 'co najmniej jeden adres poszedł → ok');
+  assert.deepEqual(res[0].sent, ['ok@x.pl']);
+  assert.equal(res[0].errors.length, 1);
+  assert.equal(res[0].errors[0].email, 'bad@x.pl');
 });
 
 test('verifySmtp: zwraca true gdy weryfikacja przejdzie', async () => {
