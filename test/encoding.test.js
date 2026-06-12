@@ -26,3 +26,10 @@ test('decodeCsvBytes: akceptuje Uint8Array, nie tylko Buffer', () => {
   const bytes = new Uint8Array(Buffer.from('Test ąć;D1;a@x.pl', 'utf8'));
   assert.equal(decodeCsvBytes(bytes), 'Test ąć;D1;a@x.pl');
 });
+
+test('decodeCsvBytes: akceptuje goły ArrayBuffer (z file.arrayBuffer())', () => {
+  const u8 = new Uint8Array(Buffer.from('Łódź;D1;a@x.pl', 'utf8'));
+  // Kopiujemy do dokładnie dopasowanego ArrayBuffer i przekazujemy sam buffer.
+  const ab = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength);
+  assert.equal(decodeCsvBytes(ab), 'Łódź;D1;a@x.pl');
+});
