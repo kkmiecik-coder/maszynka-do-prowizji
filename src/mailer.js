@@ -68,6 +68,8 @@ export async function sendBatch(deps, smtp, mail, jobs, onProgress = () => {}) {
         // Opcjonalna kopia w „Wysłane" (IMAP). Niepowodzenie kopii NIE psuje wysyłki.
         if (deps.saveSent) {
           try { await deps.saveSent(message, vars); }
+          // Zachowujemy PIERWSZY błąd kopii (jeden na job wystarcza do diagnostyki);
+          // kopia w „Wysłane" i tak nie wpływa na powodzenie wysyłki.
           catch (e) { copyError = copyError || e.message; }
         }
       } catch (e) {
