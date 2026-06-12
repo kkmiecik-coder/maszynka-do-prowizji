@@ -11,40 +11,46 @@ const cfg = { mapping: [
 ]};
 
 test('resolveRecipient: pojedynczy email po SID', () => {
-  assert.deepEqual(resolveRecipient(cfg, { sidy: ['D000111'] }), { email: 'ml@x.pl' });
+  assert.deepEqual(resolveRecipient(cfg, { sidy: ['D000111'] }), { emails: ['ml@x.pl'] });
 });
 
-test('resolveRecipient: wiele SID jednej organizacji, ten sam email', () => {
-  assert.deepEqual(resolveRecipient(cfg, { sidy: ['D000475', 'D000179'] }), { email: 'p@x.pl' });
+test('resolveRecipient: wiele SID jednej organizacji, ten sam email → dedup', () => {
+  assert.deepEqual(resolveRecipient(cfg, { sidy: ['D000475', 'D000179'] }), { emails: ['p@x.pl'] });
 });
 
 test('resolveRecipient: dopasowuje po SID mimo innej nazwy (polskie znaki)', () => {
-  // Plik wygenerowano dla "FIRMA DELTA", a w CSV jest sama "FirmaDelta".
-  // Dopasowanie po SID musi zadziałać niezależnie od nazwy organizacji.
-  assert.deepEqual(resolveRecipient(cfg, { organizacja: 'FIRMA DELTA', sidy: ['D000475'] }), { email: 'p@x.pl' });
+  assert.deepEqual(resolveRecipient(cfg, { organizacja: 'FIRMA DELTA', sidy: ['D000475'] }), { emails: ['p@x.pl'] });
 });
 
-test('resolveRecipient: konflikt maili dla SID-ów pliku', () => {
-  assert.ok(resolveRecipient(cfg, { sidy: ['A', 'B'] }).error);
+test('resolveRecipient: różne maile dla SID-ów → wiele adresatów (nie błąd)', () => {
+  assert.deepEqual(resolveRecipient(cfg, { sidy: ['A', 'B'] }), { emails: ['a@x.pl', 'b@x.pl'] });
 });
 
-test('resolveRecipient: brak maila dla SID-ów', () => {
-  assert.ok(resolveRecipient(cfg, { sidy: ['NIEMA'] }).error);
+test('resolveRecipient: brak maila dla SID-ów → pusta lista', () => {
+  assert.deepEqual(resolveRecipient(cfg, { sidy: ['NIEMA'] }), { emails: [] });
 });
 
 test('resolveRecipient: apostrof w SID jest znaczący', () => {
   const c = { mapping: [{ organizacja: 'X', sid: "D000444'", email: 'x@x.pl' }] };
-  assert.ok(resolveRecipient(c, { sidy: ['D000444'] }).error, "D000444 nie pasuje do D000444 z apostrofem");
-  assert.deepEqual(resolveRecipient(c, { sidy: ["D000444'"] }), { email: 'x@x.pl' });
+  assert.deepEqual(resolveRecipient(c, { sidy: ['D000444'] }), { emails: [] });
+  assert.deepEqual(resolveRecipient(c, { sidy: ["D000444'"] }), { emails: ['x@x.pl'] });
 });
 
-test('mergeMapping: dokleja i nadpisuje po (organizacja,sid)', () => {
+test('mergeMapping: nadpisuje gdy ten sam (organizacja, sid, email)', () => {
   const merged = mergeMapping(
-    [{ organizacja: 'A', sid: 'D1', email: 'old@x.pl' }],
-    [{ organizacja: 'A', sid: 'D1', email: 'new@x.pl' }, { organizacja: 'B', sid: 'D2', email: 'b@x.pl' }],
+    [{ organizacja: 'A', sid: 'D1', email: 'a@x.pl' }],
+    [{ organizacja: 'A', sid: 'D1', email: 'a@x.pl' }, { organizacja: 'B', sid: 'D2', email: 'b@x.pl' }],
   );
   assert.equal(merged.length, 2);
-  assert.equal(merged.find(m => m.sid === 'D1').email, 'new@x.pl');
+});
+
+test('mergeMapping: ten sam SID z różnymi mailami współistnieje (klucz org|sid|email)', () => {
+  const merged = mergeMapping(
+    [{ organizacja: 'A', sid: 'D1', email: 'a@x.pl' }],
+    [{ organizacja: 'A', sid: 'D1', email: 'b@x.pl' }],
+  );
+  assert.equal(merged.length, 2);
+  assert.deepEqual(merged.map(m => m.email).sort(), ['a@x.pl', 'b@x.pl']);
 });
 
 test('loadConfig/saveConfig: round-trip szyfruje hasło na dysku i odszyfrowuje przy odczycie', async () => {
