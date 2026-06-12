@@ -195,9 +195,12 @@ $('#importBtn').addEventListener('click', () => $('#csvInput').click());
 $('#csvInput').addEventListener('change', async (e) => {
   const file = e.target.files && e.target.files[0];
   if (!file) return;
-  const text = await file.text();
+  // Przekazujemy SUROWE bajty (nie file.text(), które zawsze dekoduje jako UTF-8) —
+  // backend wykrywa kodowanie (Excel zapisuje cp1250 lub UTF-8) i poprawnie czyta
+  // polskie znaki.
+  const bytes = new Uint8Array(await file.arrayBuffer());
   try {
-    const merged = await window.api.importCsv(text, cfg.mapping);
+    const merged = await window.api.importCsv(bytes, cfg.mapping);
     cfg.mapping = merged || cfg.mapping;
     renderMapping();
   } catch (err) {
@@ -217,6 +220,19 @@ $('#saveBtn').addEventListener('click', async () => {
   } catch (err) {
     status.innerHTML = `<span class="status-err">✗ Nie udało się zapisać: ${esc((err && err.message) || '')}</span>`;
   }
+});
+
+// ===== Zakładki konfiguracji =====
+// Przełączanie czysto po stronie renderera: wszystkie panele są w DOM (collect()
+// zbiera całość), pokazujemy tylko aktywny. Jeden wspólny „Zapisz" w stopce.
+document.querySelectorAll('.tab').forEach((tab) => {
+  tab.addEventListener('click', () => {
+    const name = tab.dataset.tab;
+    document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t === tab));
+    document.querySelectorAll('.tab-panel').forEach((p) => {
+      p.classList.toggle('active', p.dataset.panel === name);
+    });
+  });
 });
 
 init();
