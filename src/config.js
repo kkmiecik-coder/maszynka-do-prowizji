@@ -1,21 +1,19 @@
-// Dopasowanie maila po SAMYM SID — nazwa Organizacji bywa niespójna między
+// Dopasowanie maili po SAMYM SID — nazwa Organizacji bywa niespójna między
 // źródłem a CSV (polskie znaki, drobne różnice w pisowni), więc SID jest
 // jedynym pewnym kluczem. SID-y są porównywane dokładnym stringiem (apostrof
-// znaczący). `file` to { organizacja?, sidy: string[] }; `organizacja` służy
-// już tylko do czytelnego komunikatu błędu.
+// znaczący). Zwraca WSZYSTKIE unikalne maile pasujące do SID-ów pliku —
+// do jednej organizacji może być przypisanych kilka adresów (osobna wysyłka
+// do każdego). Pusta lista = brak adresata (plik pominięty przy wysyłce).
+// `file` to { organizacja?, sidy: string[] }.
 export function resolveRecipient(cfg, file) {
-  const sidy = (file?.sidy || []).map(s => String(s));
-  const sidSet = new Set(sidy);
-  const label = file?.organizacja || sidy.join(', ') || '(brak SID)';
+  const sidSet = new Set((file?.sidy || []).map(s => String(s)));
   const entries = (cfg.mapping || []).filter(m => sidSet.has(String(m.sid)) && m.email?.trim());
-  const emails = [...new Set(entries.map(m => m.email))];
-  if (emails.length === 0) return { error: `Brak emaila dla: ${label}` };
-  if (emails.length > 1) return { error: `Różne maile dla: ${label}` };
-  return { email: emails[0] };
+  const emails = [...new Set(entries.map(m => m.email.trim()))];
+  return { emails };
 }
 
 export function mergeMapping(existing, incoming) {
-  const key = m => `${m.organizacja}||${m.sid}`;
+  const key = m => `${m.organizacja}||${m.sid}||${m.email}`;
   const map = new Map(existing.map(m => [key(m), m]));
   for (const m of incoming) map.set(key(m), m);
   return [...map.values()];

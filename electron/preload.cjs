@@ -12,7 +12,7 @@ contextBridge.exposeInMainWorld('api', {
   onConfigUpdated: (cb) => ipcRenderer.on('config-updated', () => cb()),
   loadConfig: () => ipcRenderer.invoke('config:load'),
   saveConfig: (cfg) => ipcRenderer.invoke('config:save', cfg),
-  importCsv: (text, existing) => ipcRenderer.invoke('config:import-csv', { text, existing }),
+  importCsv: (bytes, existing) => ipcRenderer.invoke('config:import-csv', { bytes, existing }),
   testSmtp: (smtp) => ipcRenderer.invoke('smtp:test', smtp),
   testImap: (imap) => ipcRenderer.invoke('imap:test', imap),
   sendTest: (args) => ipcRenderer.invoke('smtp:send-test', args),

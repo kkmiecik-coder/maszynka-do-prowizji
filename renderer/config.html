@@ -22,8 +22,14 @@
         <h1 class="panel-title">Konfiguracja</h1>
         <p class="panel-sub">Ustaw konto pocztowe, treść wiadomości i listę adresatów. Zmiany zapisz przyciskiem na dole.</p>
 
+        <nav class="tabs" role="tablist">
+          <button class="tab active" type="button" data-tab="konto" role="tab">Konto e-mail</button>
+          <button class="tab" type="button" data-tab="szablon" role="tab">Szablon e-maila</button>
+          <button class="tab" type="button" data-tab="adresaci" role="tab">Adresaci</button>
+        </nav>
+
         <!-- Konto e-mail: wspólny login/hasło/nadawca + osobne serwery SMTP i IMAP -->
-        <section class="card">
+        <section class="card tab-panel active" data-panel="konto">
           <h2>Konto e-mail</h2>
           <p class="var-hint" style="margin-top:0;margin-bottom:12px">Login i hasło są wspólne dla wysyłki (SMTP) i kopii w „Wysłane" (IMAP) — to te same dane logowania do skrzynki. Serwery i porty podaj osobno, bo wysyłka i kopia używają różnych serwerów.</p>
           <div class="form-grid">
@@ -96,7 +102,7 @@
         </section>
 
         <!-- Mail template -->
-        <section class="card">
+        <section class="card tab-panel" data-panel="szablon">
           <h2>Szablon e-maila</h2>
           <div class="form-grid">
             <div class="field col-9">
@@ -122,7 +128,7 @@
         </section>
 
         <!-- Recipients -->
-        <section class="card">
+        <section class="card tab-panel" data-panel="adresaci">
           <h2>Adresaci (mapowanie)</h2>
           <div class="toolbar-row">
             <button class="btn btn-secondary" id="importBtn" type="button">Importuj CSV</button>
@@ -132,7 +138,7 @@
 
           <div class="csv-help">
             <div class="csv-help-title">Jak powinien wyglądać plik CSV?</div>
-            <p class="csv-help-text">Trzy kolumny w kolejności: <strong>Organizacja</strong>, <strong>SID</strong>, <strong>e-mail</strong>. Rozdzielone średnikiem <code>;</code> lub przecinkiem <code>,</code>. Pierwszy wiersz z nagłówkami jest opcjonalny. Liczy się kolejność kolumn, nie ich nazwy.</p>
+            <p class="csv-help-text">Trzy kolumny w kolejności: <strong>Organizacja</strong>, <strong>SID</strong>, <strong>e-mail</strong>. Rozdzielone średnikiem <code>;</code> lub przecinkiem <code>,</code>. Pierwszy wiersz z nagłówkami jest opcjonalny. Liczy się kolejność kolumn, nie ich nazwy. W kolumnie <strong>SID</strong> oraz <strong>e-mail</strong> możesz podać kilka wartości po przecinku — program rozbije je na osobne wpisy. Polskie znaki działają niezależnie od sposobu zapisu z Excela (zwykły „CSV" i „CSV UTF-8").</p>
             <table class="csv-sample">
               <thead>
                 <tr><th>Organizacja</th><th>SID</th><th>E-mail</th></tr>

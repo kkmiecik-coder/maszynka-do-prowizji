@@ -35,42 +35,53 @@ export async function sendBatch(deps, smtp, mail, jobs, onProgress = () => {}) {
     auth: smtp.user ? { user: smtp.user, pass: smtp.password } : undefined,
   });
   const results = [];
-  let lastSentIdx = -1; // indeks ostatniego REALNIE wysłanego maila (do antyspamowego odstępu)
+  let anySentYet = false; // czy w całej partii poszedł już choć jeden mail (do antyspamowego odstępu)
   for (let i = 0; i < jobs.length; i++) {
     const job = jobs[i];
-    // Brak adresu e-mail → pomijamy bez próby wysyłki. Taki plik nie jest błędem
-    // SMTP, tylko świadomie pominięty (użytkownik potwierdził brak części maili).
-    if (!job.email || !String(job.email).trim()) {
-      results.push({ organizacja: job.organizacja, ok: false, skipped: true });
+    const emails = (job.emails || []).map(e => String(e).trim()).filter(Boolean);
+    // Brak adresu → pomijamy bez próby wysyłki (nie błąd SMTP, świadome pominięcie).
+    if (emails.length === 0) {
+      results.push({ organizacja: job.organizacja, ok: false, skipped: true, sent: [] });
       onProgress({ index: i + 1, total: jobs.length, last: results[i] });
       continue;
     }
     const vars = { organizacja: job.organizacja, okres: job.period };
-    // Odstęp antyspamowy liczymy MIĘDZY realnie wysłanymi mailami (pominięte nie liczą).
-    if (lastSentIdx >= 0 && mail.delaySeconds > 0) await deps.sleep(mail.delaySeconds * 1000);
-    try {
+    const sent = [];
+    const errors = [];
+    let copyError;
+    // Osobna wiadomość do KAŻDEGO adresu. Odstęp antyspamowy liczony między
+    // każdą realną wysyłką (także między adresami tego samego pliku).
+    for (const to of emails) {
+      if (anySentYet && mail.delaySeconds > 0) await deps.sleep(mail.delaySeconds * 1000);
       const message = {
         from: smtp.from,
-        to: job.email,
+        to,
         subject: renderTemplate(mail.subject, '', vars),
         text: renderTemplate(mail.body, mail.footer, vars),
         html: renderHtml(mail.body, mail.footer, vars),
         attachments: [{ filename: basename(job.attachmentPath), path: job.attachmentPath }],
       };
-      await transport.sendMail(message);
-      // Opcjonalna kopia w folderze „Wysłane" przez IMAP (jeśli skonfigurowano).
-      // Niepowodzenie zapisu kopii NIE zmienia statusu wysyłki — mail i tak poszedł.
-      let copyError;
-      if (deps.saveSent) {
-        try { await deps.saveSent(message, vars); }
-        catch (e) { copyError = e.message; }
+      try {
+        await transport.sendMail(message);
+        anySentYet = true;
+        sent.push(to);
+        // Opcjonalna kopia w „Wysłane" (IMAP). Niepowodzenie kopii NIE psuje wysyłki.
+        if (deps.saveSent) {
+          try { await deps.saveSent(message, vars); }
+          // Zachowujemy PIERWSZY błąd kopii (jeden na job wystarcza do diagnostyki);
+          // kopia w „Wysłane" i tak nie wpływa na powodzenie wysyłki.
+          catch (e) { copyError = copyError || e.message; }
+        }
+      } catch (e) {
+        errors.push({ email: to, error: e.message });
       }
-      results.push({ organizacja: job.organizacja, ok: true, ...(copyError ? { copyError } : {}) });
-      lastSentIdx = i;
-    } catch (e) {
-      results.push({ organizacja: job.organizacja, ok: false, error: e.message });
     }
-    onProgress({ index: i + 1, total: jobs.length, last: results[i] });
+    const result = { organizacja: job.organizacja, ok: sent.length > 0, sent };
+    if (errors.length) result.errors = errors;
+    if (copyError) result.copyError = copyError;
+    if (sent.length === 0) result.error = errors[0]?.error || 'błąd wysyłki';
+    results.push(result);
+    onProgress({ index: i + 1, total: jobs.length, last: result });
   }
   return results;
 }

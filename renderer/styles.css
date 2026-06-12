@@ -921,3 +921,30 @@ body {
     transition-duration: .001ms !important;
   }
 }
+
+/* ===== Zakładki konfiguracji ===== */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 18px;
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 16px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+.tab:hover { color: var(--ink); }
+.tab.active {
+  color: var(--play-purple);
+  border-bottom-color: var(--play-purple);
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }

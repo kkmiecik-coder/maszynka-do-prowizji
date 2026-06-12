@@ -41,7 +41,7 @@ function canEnter(step) {
   if (step === 2) return !!state.result;
   // Do wysyłki wystarczy co najmniej jeden plik z adresem e-mail — brakujące
   // adresy nie blokują przejścia (użytkownik potwierdzi je w oknie dialogowym).
-  if (step === 3) return !!state.result && state.result.files.some((f) => f.email);
+  if (step === 3) return !!state.result && state.result.files.some(hasEmail);
   return false;
 }
 
@@ -230,10 +230,17 @@ function baseName(p) {
   return String(p || '').split(/[\\/]/).pop();
 }
 
+// Czy plik ma choć jeden adres? (model: f.emails to lista 0..n adresów)
+function hasEmail(f) { return Array.isArray(f.emails) && f.emails.length > 0; }
+// Maile do wyświetlenia w tabeli (lub znacznik braku).
+function emailsLabel(f) {
+  return hasEmail(f) ? esc(f.emails.join(', ')) : '<span class="muted">— brak —</span>';
+}
+
 function renderStep2() {
   const panel = $('#panel');
   const r = state.result;
-  const missing = r.files.filter((f) => !f.email).length;
+  const missing = r.files.filter((f) => !hasEmail(f)).length;
 
   const rows = r.files.map((f, i) => {
     return `
@@ -274,7 +281,7 @@ function renderStep2() {
   });
 
   // Do wysyłki wystarczy choć jeden adres — brakujące zostaną pominięte (z potwierdzeniem).
-  const ready = r.files.some((f) => f.email);
+  const ready = r.files.some(hasEmail);
   setFooter(
     `Wygenerowano ${r.files.length} ${plik(r.files.length)} w „Prowizje ${esc(r.period)}".`,
     `<button class="btn btn-secondary" id="backBtn" type="button">← Wróć</button>
@@ -346,12 +353,12 @@ function renderStep3() {
   const panel = $('#panel');
   const files = state.result.files;
   const total = files.length;
-  const sendable = files.filter((f) => f.email).length; // ile faktycznie pójdzie
+  const sendable = files.filter(hasEmail).length; // ile plików faktycznie pójdzie
 
   const rows = files.map((f) => {
     const s = state.sendResults[f.organizacja];
     let status;
-    if (!f.email) status = `<span class="row-status pending" title="Brak adresu e-mail — plik pominięty">⤬ pominięto — brak maila</span>`;
+    if (!hasEmail(f)) status = `<span class="row-status pending" title="Brak adresu e-mail — plik pominięty">⤬ pominięto — brak maila</span>`;
     else if (!s) status = `<span class="row-status pending">—</span>`;
     else if (s.skipped) status = `<span class="row-status pending">⤬ pominięto — brak maila</span>`;
     else if (s.ok) status = `<span class="row-status status-ok"><span class="icon">✓</span> wysłano</span>`;
@@ -359,13 +366,13 @@ function renderStep3() {
     return `
       <tr data-org="${esc(f.organizacja)}">
         <td class="org">${esc(f.organizacja)}</td>
-        <td class="mono">${f.email ? esc(f.email) : '<span class="muted">— brak —</span>'}</td>
+        <td class="mono">${emailsLabel(f)}</td>
         <td class="status-cell">${status}</td>
       </tr>`;
   }).join('');
 
   const okCount = Object.values(state.sendResults).filter((s) => s.ok).length;
-  const skipCount = files.filter((f) => !f.email).length;
+  const skipCount = files.filter((f) => !hasEmail(f)).length;
   // Prawdziwe błędy SMTP (nie pominięcia z braku maila).
   const fails = files.filter((f) => { const s = state.sendResults[f.organizacja]; return s && !s.ok && !s.skipped; });
 
@@ -411,12 +418,12 @@ function renderStep3() {
 
 async function onSendAll() {
   const allFiles = state.result.files;
-  const withEmail = allFiles.filter((f) => f.email);
+  const withEmail = allFiles.filter(hasEmail);
   const missing = allFiles.length - withEmail.length;
 
   // Jeśli części plików brakuje adresu — wyraźne potwierdzenie, że wyślemy tylko resztę.
   if (missing > 0) {
-    const brakujace = allFiles.filter((f) => !f.email).map((f) => f.organizacja);
+    const brakujace = allFiles.filter((f) => !hasEmail(f)).map((f) => f.organizacja);
     const lista = brakujace.slice(0, 12).join(', ') + (brakujace.length > 12 ? `, …(+${brakujace.length - 12})` : '');
     const ok = window.confirm(
       `Uwaga: ${missing} z ${allFiles.length} ${plik(allFiles.length)} nie ma przypisanego adresu e-mail ` +
@@ -452,7 +459,7 @@ async function onSendAll() {
 
   try {
     const results = await window.api.sendAll({
-      files: files.map((f) => ({ organizacja: f.organizacja, email: f.email, path: f.path })),
+      files: files.map((f) => ({ organizacja: f.organizacja, emails: f.emails, path: f.path })),
       period: state.result.period,
     });
     (results || []).forEach((r) => {
@@ -520,7 +527,7 @@ window.api.onConfigUpdated(async () => {
   (resolved || []).forEach((r) => { byKey[sidKey(r.sidy)] = r; });
   state.result.files.forEach((f) => {
     const r = byKey[sidKey(f.sidy)];
-    if (r) { f.email = r.email; f.emailError = r.emailError; }
+    if (r) { f.emails = r.emails || []; }
   });
   render();
 });

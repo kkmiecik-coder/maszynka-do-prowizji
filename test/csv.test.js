@@ -28,3 +28,39 @@ test('parseMappingCsv: organizacja zawierająca słowo "email" nie jest nagłów
   const csv = 'Email Solutions Sp.zoo;D002;contact@email-sol.pl';
   assert.equal(parseMappingCsv(csv).length, 1);
 });
+
+test('parseMappingCsv: wiele SID w jednej komórce → osobne wiersze', () => {
+  const csv = 'Rafał;D001791, D001780;rafal@x.pl';
+  const rows = parseMappingCsv(csv);
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows.map(r => r.sid).sort(), ['D001780', 'D001791']);
+  assert.ok(rows.every(r => r.email === 'rafal@x.pl'));
+  assert.ok(rows.every(r => r.organizacja === 'Rafał'));
+});
+
+test('parseMappingCsv: wiele maili w jednej komórce → osobne wiersze', () => {
+  const csv = 'MW Office;D100;magda@x.pl, kamil@x.pl';
+  const rows = parseMappingCsv(csv);
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows.map(r => r.email).sort(), ['kamil@x.pl', 'magda@x.pl']);
+  assert.ok(rows.every(r => r.sid === 'D100'));
+});
+
+test('parseMappingCsv: iloczyn kartezjański SID × mail', () => {
+  const csv = 'Org;D1, D2;a@x.pl, b@x.pl';
+  const rows = parseMappingCsv(csv);
+  assert.equal(rows.length, 4); // 2 SID × 2 maile
+});
+
+test('parseMappingCsv: separator ; gdy przecinki są wewnątrz komórek', () => {
+  const csv = 'Mtell sp. j.;D003033385, D003033427, D003033434; pc@mtell.pl';
+  const rows = parseMappingCsv(csv);
+  assert.equal(rows.length, 3);
+  assert.ok(rows.every(r => r.email === 'pc@mtell.pl'));
+  assert.ok(rows.every(r => r.organizacja === 'Mtell sp. j.'));
+});
+
+test('parseMappingCsv: wiersz bez poprawnego maila jest pomijany', () => {
+  const csv = 'Org;D1;niepoprawny-bez-malpy';
+  assert.equal(parseMappingCsv(csv).length, 0);
+});
