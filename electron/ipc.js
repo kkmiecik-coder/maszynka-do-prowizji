@@ -12,6 +12,7 @@ import { loadConfig, saveConfig, resolveRecipient, mergeMapping } from '../src/c
 import { sendBatch, verifySmtp, renderTemplate, renderHtml } from '../src/mailer.js';
 import { makeSaveSent, testImap as testImapCore } from '../src/imap.js';
 import { parseMappingCsv } from '../src/csv.js';
+import { decodeCsvBytes } from '../src/encoding.js';
 import { detectPeriod, formatPeriod } from '../src/period.js';
 import { resolveColIndex } from '../src/columns.js';
 import { buildDaneDoPlikow, buildSlownikDB } from '../src/daneDoPlikow.js';
@@ -68,13 +69,16 @@ export function registerIpc() {
     const cfg = await loadConfig(cryptoDeps, CONFIG_PATH());
     return (files || []).map((f) => {
       const rec = resolveRecipient(cfg, f);
-      return { organizacja: f.organizacja, sidy: f.sidy, email: rec.email || null, emailError: rec.error || null };
+      return { organizacja: f.organizacja, sidy: f.sidy, emails: rec.emails };
     });
   });
 
   ipcMain.handle('config:load', async () => loadConfig(cryptoDeps, CONFIG_PATH()));
   ipcMain.handle('config:save', async (_e, cfg) => { await saveConfig(cryptoDeps, CONFIG_PATH(), cfg); return true; });
-  ipcMain.handle('config:import-csv', async (_e, { text, existing }) => mergeMapping(existing || [], parseMappingCsv(text)));
+  // Wejście: surowe bajty pliku CSV (renderer wysyła arrayBuffer) — wykrywamy
+  // kodowanie (Excel zapisuje cp1250 albo UTF-8) i dopiero parsujemy.
+  ipcMain.handle('config:import-csv', async (_e, { bytes, existing }) =>
+    mergeMapping(existing || [], parseMappingCsv(decodeCsvBytes(bytes))));
   ipcMain.handle('smtp:test', async (_e, smtp) => {
     try { await verifySmtp({ createTransport: nodemailer.createTransport }, smtp); return { ok: true }; }
     catch (e) { return { ok: false, error: e.message }; }
@@ -172,7 +176,7 @@ export function registerIpc() {
       const outPath = join(folder, `${f.organizacja} ${period}.xlsx`);
       await saveFile(f, TPL(f.kanal === 'POS' ? 'pos-template.xlsx' : 'db-template.xlsx'), outPath, detailHeader);
       const rec = resolveRecipient(cfg, f);
-      out.push({ organizacja: f.organizacja, kanal: f.kanal, sidy: f.sidy, path: outPath, email: rec.email || null, emailError: rec.error || null });
+      out.push({ organizacja: f.organizacja, kanal: f.kanal, sidy: f.sidy, path: outPath, emails: rec.emails });
     }
     return { period, folder, files: out, multiplePeriods: periodInfo.multiple, periodBreakdown: periodInfo.breakdown };
   });
@@ -182,14 +186,14 @@ export function registerIpc() {
     const results = await sendBatch(
       { createTransport: nodemailer.createTransport, sleep: (ms) => new Promise(r => setTimeout(r, ms)), saveSent: makeSaveSentFromCfg(cfg) },
       { ...cfg.smtp }, cfg.mail,
-      [{ organizacja: file.organizacja, email: file.email, attachmentPath: file.path, period }],
+      [{ organizacja: file.organizacja, emails: file.emails, attachmentPath: file.path, period }],
     );
     return results[0];
   });
 
   ipcMain.handle('send-all', async (e, { files, period }) => {
     const cfg = await loadConfig(cryptoDeps, CONFIG_PATH());
-    const jobs = files.map(f => ({ organizacja: f.organizacja, email: f.email, attachmentPath: f.path, period }));
+    const jobs = files.map(f => ({ organizacja: f.organizacja, emails: f.emails, attachmentPath: f.path, period }));
     return sendBatch(
       { createTransport: nodemailer.createTransport, sleep: (ms) => new Promise(r => setTimeout(r, ms)), saveSent: makeSaveSentFromCfg(cfg) },
       { ...cfg.smtp }, cfg.mail, jobs,
